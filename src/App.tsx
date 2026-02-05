@@ -80,30 +80,26 @@ export default function App() {
   const weekKey = useMemo(() => getWeekKey(new Date()), []);
   const puzzle = useMemo(() => pickWeeklyPuzzle(weekKey), [weekKey]);
 
-  // You make exactly 5 moves. Opponent auto-replies after each correct move (4 replies total).
   const REQUIRED_PLAYER_MOVES = 5;
 
   const [game, setGame] = useState(() => new Chess(puzzle.fen));
   const [selected, setSelected] = useState<{ r: number; c: number } | null>(null);
 
-  const [playerMoveIndex, setPlayerMoveIndex] = useState(0); // 0..4
+  const [playerMoveIndex, setPlayerMoveIndex] = useState(0);
   const [mistakes, setMistakes] = useState(0);
   const [done, setDone] = useState(false);
 
   const [name, setName] = useState("");
   const [leaderboard, setLeaderboard] = useState<LeaderEntry[]>([]);
 
-  // Timer: starts on FIRST LEGAL attempt and updates in the background
   const startRef = useRef<number | null>(null);
   const [timeMs, setTimeMs] = useState(0);
 
   const [hintStage, setHintStage] = useState<HintStage>(0);
 
-  // Themes (saved)
   const [bgTheme, setBgTheme] = useState<BgTheme>("bg-neo");
   const [boardTheme, setBoardTheme] = useState<BoardTheme>("board-classic");
 
-  // Load saved themes + name
   useEffect(() => {
     const savedBg = (localStorage.getItem("khai_bg_theme") as BgTheme) || "bg-neo";
     const savedBoard = (localStorage.getItem("khai_board_theme") as BoardTheme) || "board-classic";
@@ -117,7 +113,6 @@ export default function App() {
   useEffect(() => localStorage.setItem("khai_board_theme", boardTheme), [boardTheme]);
   useEffect(() => localStorage.setItem("khai_player_name", name), [name]);
 
-  // Timer tick
   useEffect(() => {
     const i = setInterval(() => {
       if (startRef.current && !done) setTimeMs(Date.now() - startRef.current);
@@ -125,7 +120,6 @@ export default function App() {
     return () => clearInterval(i);
   }, [done]);
 
-  // Load leaderboard
   useEffect(() => {
     loadLeaderboard();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -164,13 +158,11 @@ export default function App() {
     if (!startRef.current) startRef.current = Date.now();
   }
 
-  // Next expected player move = solution[playerMoveIndex*2]
   const nextPlayerUci = useMemo(() => {
     const idx = playerMoveIndex * 2;
     return puzzle.solution[idx] || "";
   }, [playerMoveIndex, puzzle.solution]);
 
-  // Hint squares for NEXT player move
   const hintSquares = useMemo(() => {
     if (done) return null;
     if (!nextPlayerUci || nextPlayerUci.length < 4) return null;
@@ -184,7 +176,6 @@ export default function App() {
   }, [hintSquares]);
 
   function applyOpponentMoveIfExists(nextPlayerIdx: number, g: Chess) {
-    // Opponent reply after player move #n is index (n*2 - 1)
     const oppIdx = nextPlayerIdx * 2 - 1;
     const uci = puzzle.solution[oppIdx];
     if (!uci) return;
@@ -197,9 +188,8 @@ export default function App() {
     if (done) return;
 
     const attempted = game.move({ from, to, promotion: "q" } as any);
-    if (!attempted) return; // illegal move
+    if (!attempted) return;
 
-    // Start timer on first LEGAL attempt (even if wrong)
     startTimerIfNeeded();
 
     const uci = (attempted.from + attempted.to).toLowerCase();
@@ -215,7 +205,6 @@ export default function App() {
 
     const nextIdx = playerMoveIndex + 1;
 
-    // After correct move, apply opponent reply instantly
     const g = new Chess(game.fen());
     applyOpponentMoveIfExists(nextIdx, g);
 
@@ -250,8 +239,8 @@ export default function App() {
   }, [game]);
 
   const statusText = useMemo(() => {
-    if (done) return "✅ Solved";
-    return `Your move ${playerMoveIndex + 1}/${REQUIRED_PLAYER_MOVES} • ${game.turn() === "w" ? "White" : "Black"} to move`;
+    if (done) return "Solved";
+    return `Your move ${playerMoveIndex + 1}/${REQUIRED_PLAYER_MOVES}. ${game.turn() === "w" ? "White" : "Black"} to move.`;
   }, [done, game, playerMoveIndex]);
 
   return (
@@ -260,15 +249,24 @@ export default function App() {
         <header className="top">
           <div className="brand">
             <div className="logo">KD</div>
-            <div>
-              <div className="title">Khai’s Weekly Chess Puzzle</div>
-              <div className="sub">You move. Opponent replies instantly. 5 moves to finish.</div>
+            <div className="brandText">
+              <div className="titleRow">
+                <div className="title">Khai’s Weekly Chess Puzzle</div>
+              </div>
+
+              <div className="progressBanner">
+                PROJECT IN PROGRESS. New puzzles and features drop regularly. You are watching it evolve live.
+              </div>
+
+              <div className="sub">
+                You move. Opponent replies instantly. 5 moves to finish.
+              </div>
             </div>
           </div>
 
           <div className="meta">
             <div className="pill">{statusText}</div>
-            <div className="pill">⏱ {formatTime(timeMs)}</div>
+            <div className="pill">Time {formatTime(timeMs)}</div>
             <button className="btn" onClick={restartPuzzle}>Restart</button>
           </div>
         </header>
@@ -276,25 +274,6 @@ export default function App() {
         <main className="grid">
           <section className="panel">
             <div className="panelTitle">Controls</div>
-
-            <div className="row">
-              <div className="label">Hint</div>
-              <div className="value">
-                <button
-                  className="btnWide"
-                  disabled={done || !hintSquares}
-                  onClick={() => setHintStage(s => (s === 0 ? 1 : s === 1 ? 2 : 0))}
-                >
-                  {hintStage === 0 ? "Show hint (piece)" : hintStage === 1 ? "Show hint (square)" : "Hide hint"}
-                </button>
-
-                {hintSquares && hintStage > 0 && (
-                  <div className="hintText">
-                    {hintStage === 1 ? <>Move the highlighted piece.</> : <>Move it to the highlighted square.</>}
-                  </div>
-                )}
-              </div>
-            </div>
 
             <div className="row">
               <div className="label">Your name</div>
@@ -350,9 +329,27 @@ export default function App() {
                 <button className="btnGold" onClick={submitScore}>
                   Submit to Leaderboard
                 </button>
-                <div className="micro">Submits time + mistakes for this week.</div>
+                <div className="micro">Saves time and mistakes for this week.</div>
               </div>
             )}
+
+            {/* ✅ HINT MOVED TO BOTTOM FOR PHONE REACH */}
+            <div className="hintBlock">
+              <div className="panelTitle">Hint</div>
+              <button
+                className="btnWide"
+                disabled={done || !hintSquares}
+                onClick={() => setHintStage(s => (s === 0 ? 1 : s === 1 ? 2 : 0))}
+              >
+                {hintStage === 0 ? "Show hint (piece)" : hintStage === 1 ? "Show hint (square)" : "Hide hint"}
+              </button>
+
+              {hintSquares && hintStage > 0 && (
+                <div className="hintText">
+                  {hintStage === 1 ? <>Move the highlighted piece.</> : <>Move it to the highlighted square.</>}
+                </div>
+              )}
+            </div>
           </section>
 
           <section className="boardWrap">
@@ -418,7 +415,7 @@ export default function App() {
               )}
 
               <div className="footerHint">
-                Custom chess puzzle engine built in VS Code, deployed on Vercel, backed by Supabase SQL — real-time game logic, automated move validation, and global leaderboard persistence. This project will keep improving, so enjoy the show.
+                Custom chess puzzle engine built in VS Code, deployed on Vercel, backed by Supabase SQL. Real time game logic, automated move validation, and global leaderboard persistence. This project will keep improving, so enjoy the show.
               </div>
             </div>
           </section>
