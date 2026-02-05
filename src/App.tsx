@@ -41,7 +41,6 @@ function pickWeeklyPuzzle(weekKey: string): WeeklyPuzzle {
   return PUZZLES[hash % PUZZLES.length];
 }
 
-// ✅ IMPORTANT: return Square (not string)
 function sqName(r: number, c: number): Square {
   return `${FILES[c]}${8 - r}` as Square;
 }
@@ -419,7 +418,7 @@ export default function App() {
               )}
 
               <div className="footerHint">
-                Custom chess puzzle engine built in VS Code, deployed on Vercel, backed by Supabase SQL — real-time game logic, automated move validation, and global leaderboard persistence.
+                Custom chess puzzle engine built in VS Code, deployed on Vercel, backed by Supabase SQL — real-time game logic, automated move validation, and global leaderboard persistence. This project will keep improving, so enjoy the show.
               </div>
             </div>
           </section>
