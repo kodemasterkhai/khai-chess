@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Chess } from "chess.js";
+import { Chess, type Square } from "chess.js";
 import "./App.css";
 import { PUZZLES, type WeeklyPuzzle } from "./puzzles";
 import { supabase } from "./supabase";
@@ -20,6 +20,8 @@ type HintStage = 0 | 1 | 2;
 type BgTheme = "bg-neo" | "bg-midnight" | "bg-carbon";
 type BoardTheme = "board-classic" | "board-emerald" | "board-royal" | "board-sand";
 
+const FILES = "abcdefgh";
+
 function yyyyMmDd(d: Date) {
   return d.toISOString().slice(0, 10);
 }
@@ -39,13 +41,13 @@ function pickWeeklyPuzzle(weekKey: string): WeeklyPuzzle {
   return PUZZLES[hash % PUZZLES.length];
 }
 
-function sqName(r: number, c: number) {
-  return "abcdefgh"[c] + String(8 - r);
+// ✅ IMPORTANT: return Square (not string)
+function sqName(r: number, c: number): Square {
+  return `${FILES[c]}${8 - r}` as Square;
 }
 
-function coordsFromSq(sq: string) {
-  const files = "abcdefgh";
-  return { r: 8 - Number(sq[1]), c: files.indexOf(sq[0]) };
+function coordsFromSq(sq: Square) {
+  return { r: 8 - Number(sq[1]), c: FILES.indexOf(sq[0]) };
 }
 
 function pieceToUnicode(p: { type: string; color: Color } | null): string {
@@ -69,8 +71,8 @@ function clampName(s: string) {
 }
 
 function parseUci(uci: string) {
-  const from = uci.slice(0, 2);
-  const to = uci.slice(2, 4);
+  const from = uci.slice(0, 2) as Square;
+  const to = uci.slice(2, 4) as Square;
   const promotion = uci.length >= 5 ? uci[4] : undefined;
   return { from, to, promotion };
 }
@@ -189,10 +191,10 @@ export default function App() {
     if (!uci) return;
 
     const { from, to, promotion } = parseUci(uci);
-    g.move({ from, to, promotion: promotion ?? "q" } as any);
+    g.move({ from, to, promotion: (promotion ?? "q") as any } as any);
   }
 
-  function tryPlayerMove(from: string, to: string) {
+  function tryPlayerMove(from: Square, to: Square) {
     if (done) return;
 
     const attempted = game.move({ from, to, promotion: "q" } as any);
